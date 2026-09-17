@@ -60,6 +60,7 @@ function Brain.new()
 
     local ids = {}
     local seen = {}
+
     local function addID(id)
         id = tonumber(id) or id
         if not seen[id] then
@@ -73,7 +74,9 @@ function Brain.new()
         addID(edge[2])
     end
     for _, group in pairs(data.cell_types or {}) do
-        for _, id in ipairs(group) do addID(id) end
+        for _, id in ipairs(group) do
+            addID(id)
+        end
     end
 
     self.neuronCount = #ids
@@ -90,11 +93,12 @@ function Brain.new()
         self.groups[cellType] = {}
         for _, id in ipairs(group) do
             local index = self.idToIndex[tonumber(id) or id]
-            if index then self.groups[cellType][#self.groups[cellType] + 1] = index end
+            if index then
+                self.groups[cellType][#self.groups[cellType] + 1] = index
+            end
         end
     end
 
-    -- Outgoing adjacency: only neurons that spiked last tick are traversed in Step().
     for _, edge in ipairs(data.edges or {}) do
         local pre = self.idToIndex[tonumber(edge[1]) or edge[1]]
         local post = self.idToIndex[tonumber(edge[2]) or edge[2]]
@@ -108,7 +112,9 @@ function Brain.new()
 
     for tick = 1, RATE_WINDOW_TICKS do
         self.history[tick] = {}
-        for i = 1, self.neuronCount do self.history[tick][i] = false end
+        for i = 1, self.neuronCount do
+            self.history[tick][i] = false
+        end
     end
 
     print(string.format("[FlyWire] Loaded %d neurons and %d edges", self.neuronCount, #(data.edges or {})))
@@ -127,7 +133,6 @@ end
 function Brain:Step()
     local synaptic = {}
 
-    -- Sparse propagation from only the previous tick's spikes.
     for pre = 1, self.neuronCount do
         if self.lastSpikes[pre] then
             for _, connection in ipairs(self.adjacency[pre]) do
@@ -139,10 +144,9 @@ function Brain:Step()
 
     local spiked = {}
     for i = 1, self.neuronCount do
-        local refractory = self.refractory[i]
         local didSpike = false
 
-        if refractory <= 0 then
+        if self.refractory[i] <= 0 then
             local v = self.voltage[i]
             v = v + (V_REST - v) / TAU * DT
             v = v + (synaptic[i] or 0) + self.currentInjection[i]
@@ -155,13 +159,13 @@ function Brain:Step()
             end
             self.voltage[i] = v
         else
-            -- Match the validated model: refractory neurons skip leak and inputs.
             self.currentInjection[i] = 0
         end
 
         if self.refractory[i] > 0 then
             self.refractory[i] = math.max(0, self.refractory[i] - DT)
         end
+
         spiked[i] = didSpike
     end
 
@@ -178,7 +182,9 @@ function Brain:GetFiringRate(cellType)
     for _, index in ipairs(group) do
         local count = 0
         for tick = 1, RATE_WINDOW_TICKS do
-            if self.history[tick][index] then count = count + 1 end
+            if self.history[tick][index] then
+                count = count + 1
+            end
         end
         total = total + (count / (RATE_WINDOW_TICKS * DT)) * 1000
     end

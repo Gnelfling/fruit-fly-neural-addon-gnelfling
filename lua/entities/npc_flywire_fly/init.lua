@@ -30,6 +30,7 @@ function ENT:Initialize()
     self.flightYaw = math.random(0, 360)
     self.escapeBurstUntil = 0
     self.escapeCooldownUntil = 0
+    self.nextDebugPrint = 0
 
     self.brain = Brain.new()
     self.simAccumulator = 0
@@ -81,6 +82,18 @@ function ENT:RunBrain()
     self.lastDNp01 = self.brain:GetFiringRate("DNp01")
     self.lastDNa01 = self.brain:GetFiringRate("DNa01")
     self.lastDNa02 = self.brain:GetFiringRate("DNa02")
+
+    -- Temporary diagnostic output, throttled to approximately once per second.
+    if CurTime() >= self.nextDebugPrint then
+        print(string.format(
+            "threat=%.2f DNp01=%.1f DNa01=%.1f DNa02=%.1f",
+            threat,
+            self.lastDNp01,
+            self.lastDNa01,
+            self.lastDNa02
+        ))
+        self.nextDebugPrint = CurTime() + 1.0
+    end
 end
 
 function ENT:ApplyEscapeBurst()
